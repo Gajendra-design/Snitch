@@ -1,6 +1,6 @@
 import { matchedData, validationResult } from "express-validator"
 import { userModel } from "../model/user.model.js"
-import { compareHashPassword, verifyRefreshToken } from "../utils/auth.utils.js"
+import { compareHashPassword, verifyAccessToken, verifyRefreshToken } from "../utils/auth.utils.js"
 
 export const registerMiddleware = async (req, res, next) => {
     const validation = validationResult(req)
@@ -41,11 +41,11 @@ export const registerMiddleware = async (req, res, next) => {
 
 }
 
-export const loginMiddleWare = async (req,res,next)=>{
+export const loginMiddleWare = async (req, res, next) => {
     const errors = validationResult(req)
-    
+
     //checkign calidation errors
-    if(!errors.isEmpty()){
+    if (!errors.isEmpty()) {
         return res.status(400).json({
             success: false,
             message: "Invalid Request",
@@ -54,73 +54,101 @@ export const loginMiddleWare = async (req,res,next)=>{
     }
 
     //sanatizing data
-    const validatedPayload = matchedData(req,{locations:['body']})
+    const validatedPayload = matchedData(req, { locations: ['body'] })
 
-   try {
-     const isUserExisits = await userModel.findOne({
-        email:validatedPayload.email
-    }).select('+hashPassword')
+    try {
+        const isUserExisits = await userModel.findOne({
+            email: validatedPayload.email
+        }).select('+hashPassword')
 
-    if(!isUserExisits){
-         return res.status(404).json({
+        if (!isUserExisits) {
+            return res.status(404).json({
+                success: false,
+                message: "user does not exists in database",
+                errors: [
+                    {
+                        type: "field",
+                        value: validatedPayload.email,
+                        msg: "this email id does not exists in our DB",
+                        path: "email",
+                        location: "body"
+                    }
+                ]
+            })
+        }
+
+        const isPasswordRight = await compareHashPassword(validatedPayload.password, isUserExisits.hashPassword)
+
+        if (!isPasswordRight) {
+            res.status(401).json({
+                success: false,
+                message: "either email or password is incorrect"
+            })
+        }
+
+        req.user = isUserExisits
+
+        next()
+    } catch (error) {
+        console.log('error in login middleware', error);
+        res.status(500).json({
             success: false,
-            message: "user does not exists in database",
-            errors: [
-                {
-                    type: "field",
-                    value: validatedPayload.email,
-                    msg: "this email id does not exists in our DB",
-                    path: "email",
-                    location: "body"
-                }
-            ]
+            message: "something went wrong, please try again",
+            errors: error.message
         })
+
     }
-
-    const isPasswordRight = await compareHashPassword(validatedPayload.password,isUserExisits.hashPassword)
-
-    if(!isPasswordRight){
-        res.status(401).json({
-            success:false,
-            message:"either email or password is incorrect"
-        })
-    }
-
-     req.user = isUserExisits
-
-    next()
-   } catch (error) {
-    console.log('error in login middleware',error);
-    res.status(500).json({
-        success:false,
-        message:"something went wrong, please try again",
-        errors:error.message
-    })
-    
-   }
 }
 
-export const refreshMiddleware = (req,res,next)=>{
+export const refreshMiddleware = (req, res, next) => {
 
-    const {refreshToken} = req.cookies
-    
-    if(!refreshToken){
+    const { refreshToken } = req.cookies
+
+    if (!refreshToken) {
         return res.status(401).json({
-            success:false,
-            message:"no refresh token found"
+            success: false,
+            message: "no refresh token found"
         })
     }
 
     const isValidRefreshToken = verifyRefreshToken(refreshToken)
 
-    if(!isValidRefreshToken){
+    if (!isValidRefreshToken) {
         return res.status(401).json({
-            success:false,
-            message:"invalid or expired refresh token"
+            success: false,
+            message: "invalid or expired refresh token"
         })
     }
 
     req.user = isValidRefreshToken
-   
+
     next()
+}
+
+export const authenticateMiddleware = (req, res, next) => {
+    const authHeader = req.headers.authorization
+
+    if (!authHeader || !authHeader.startsWith("Bearer")) {
+        return res.status(401).json({
+            success: false,
+            message: 'Access denied. Bearer token missing or malformed.',
+        });
+    }
+
+    const accessToken = authHeader.split(' ')[1]
+
+    const isValidAccessToken = verifyAccessToken(accessToken)
+
+    if(!isValidAccessToken){
+        return res.status(401).json({
+            success:false,
+            message:"invalid or expired access token"
+        })
+    }
+    
+    req.user = isValidAccessToken
+    req.accessToken = accessToken 
+
+    next()
+
 }

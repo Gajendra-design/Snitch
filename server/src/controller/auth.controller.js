@@ -126,5 +126,23 @@ export const refreshController = async (req,res)=>{
 }
 
 export const verifyUserController = async (req,res)=>{
+
+    //we have handeled token don't start with Bearear or not send or invalid or expire cases in the middelware
+    //now we will find the user in db
+    const {id} = req.user
+
+    const user = await userModel.findById({_id:id})
+
+    return res.status(200).json({
+        success:true,
+        message:"user verified successfully",
+        data:{
+            id:user._id,
+            username:user.username,
+            email:user.email,
+            accessToken:req.accessToken
+        }
+    })
+
     return res.send('verify user')
 }

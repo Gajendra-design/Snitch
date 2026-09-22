@@ -18,9 +18,18 @@ export const genreateTokens =  (userId,role)=>{
 }
 
 export const verifyAccessToken = (accessToken)=>{
-    return jwt.verify(accessToken,config.ACCESS_SECRET)
+    //yaha pe try-catch iss liye use kar rahe hai kyu ki hum hamare api wale code me validation jab token expire hoga tab bhi handel karna chate hai and wha pe hum wo if me !validatToken ke through dekh rahe hai and ye jo token hamare server se genrate nahi hua ko tho dekh lega par expiry me nahi chal payega kyuki hum tho return await jwt.verif(...) ka hi keval use kar rahe the phale sp sor that if any error comes return null
+    try {
+        return jwt.verify(accessToken,config.ACCESS_SECRET)
+    } catch (error) {
+        return null
+    }
 }
 
 export const verifyRefreshToken = (refreshToken)=>{
-    return jwt.verify(refreshToken,config.REFRESH_SECRET)
+    try {
+        return jwt.verify(refreshToken,config.REFRESH_SECRET)
+    } catch (error) {
+        return null;
+    }
 }
