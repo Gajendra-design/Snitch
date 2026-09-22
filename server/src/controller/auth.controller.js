@@ -57,7 +57,44 @@ export const registerController = async (req,res)=>{
 }
 
 export const loginController = async (req,res)=>{
-    return res.send('login')
+
+    //we have validated and sanitized all the filed in login in validation and middleware and also handeled 404 email not found error in the db and ans also 401 unauthorized error now send user info in the req.user
+
+    // console.log(req.user);
+    
+    
+    const {_id,email,username,role} = req.user;
+
+    //genrating tokens
+    const {accessToken,refreshToken} = genreateTokens(_id,role)
+    
+   try {
+     //updating user resouse for the refresh token
+    await userModel.findByIdAndUpdate({_id},{refreshToken})
+
+    //setting refresh token in the cookie
+    res.cookie("refreshToken",refreshToken,{httpOnly:true})
+
+    //sending response with access token
+    return res.status(200).json({
+        success:true,
+        message:"user logged in successfully",
+        data:{
+            username,
+            email,
+            accessToken
+        }
+    })
+   } catch (error) {
+    console.log('error in login controller',error);
+    
+    return res.status(500).json({
+        success:false,
+        message:"something went wrong, please try again",
+        errors:error.message
+    })
+   }
+
 }
 
 export const refreshController = async (req,res)=>{
