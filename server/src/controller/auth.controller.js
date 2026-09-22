@@ -59,9 +59,6 @@ export const registerController = async (req,res)=>{
 export const loginController = async (req,res)=>{
 
     //we have validated and sanitized all the filed in login in validation and middleware and also handeled 404 email not found error in the db and ans also 401 unauthorized error now send user info in the req.user
-
-    // console.log(req.user);
-    
     
     const {_id,email,username,role} = req.user;
 
