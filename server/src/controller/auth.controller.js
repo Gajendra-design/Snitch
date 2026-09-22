@@ -38,6 +38,7 @@ export const registerController = async (req,res)=>{
         success:true,
         message:"user created successfully",
         data:{
+            id:user._id,
             username:user.username,
             email:user.email,
             accessToken:accessToken
@@ -77,6 +78,7 @@ export const loginController = async (req,res)=>{
         success:true,
         message:"user logged in successfully",
         data:{
+            id:_id,
             username,
             email,
             accessToken
@@ -95,7 +97,32 @@ export const loginController = async (req,res)=>{
 }
 
 export const refreshController = async (req,res)=>{
-    return res.send('refresh')
+
+    //now in the middelware we have handeled refresh token not found or invalid edge cases
+    //now first extract the info of user from req.user
+    const {id,role} = req.user
+
+    //now genrate the access token and refresh token
+    const {accessToken,refreshToken} = genreateTokens(id,role)
+
+    //now update user resourse in the db
+    const user = await userModel.findByIdAndUpdate({_id:id},{refreshToken})
+
+    //set new refresh token in the cookie
+    res.cookie('refreshToken',refreshToken,{httpOnly:true})
+    
+    //now send response along with the accessToke
+    res.status(200).json({
+        success:true,
+        message:"all the tokens refreshed successfully",
+        data:{
+            id:user._id,
+            username:user.username,
+            email:user.email,
+            accessToken:accessToken
+        }
+    })
+
 }
 
 export const verifyUserController = async (req,res)=>{

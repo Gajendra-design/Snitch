@@ -11,8 +11,8 @@ export const compareHashPassword = async (plainPassword,hashedPassword)=>{
 }
 
 export const genreateTokens =  (userId,role)=>{
-    const accessToken =  jwt.sign({id:userId,role},config.ACCESS_SECRET)
-    const refreshToken = jwt.sign({id:userId,role},config.REFRESH_SECRET)
+    const accessToken =  jwt.sign({id:userId,role},config.ACCESS_SECRET,{expiresIn:"15m"})
+    const refreshToken = jwt.sign({id:userId,role},config.REFRESH_SECRET,{expiresIn:"7d"})
 
     return {accessToken,refreshToken}
 }

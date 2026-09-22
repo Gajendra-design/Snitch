@@ -1,6 +1,6 @@
 import { matchedData, validationResult } from "express-validator"
 import { userModel } from "../model/user.model.js"
-import { compareHashPassword } from "../utils/auth.utils.js"
+import { compareHashPassword, verifyRefreshToken } from "../utils/auth.utils.js"
 
 export const registerMiddleware = async (req, res, next) => {
     const validation = validationResult(req)
@@ -98,4 +98,29 @@ export const loginMiddleWare = async (req,res,next)=>{
     })
     
    }
+}
+
+export const refreshMiddleware = (req,res,next)=>{
+
+    const {refreshToken} = req.cookies
+    
+    if(!refreshToken){
+        return res.status(401).json({
+            success:false,
+            message:"no refresh token found"
+        })
+    }
+
+    const isValidRefreshToken = verifyRefreshToken(refreshToken)
+
+    if(!isValidRefreshToken){
+        return res.status(401).json({
+            success:false,
+            message:"invalid or expired refresh token"
+        })
+    }
+
+    req.user = isValidRefreshToken
+   
+    next()
 }
